@@ -32,9 +32,9 @@ import hashlib
 import javaobj
 import time
 from pyasn1.codec.ber import encoder, decoder
-from pyasn1_modules import rfc5208
+from pyasn1_modules import rfc5208, rfc2314
 from pyasn1_modules.rfc2459 import AlgorithmIdentifier
-from pyasn1.type import univ, namedtype
+from pyasn1.type import univ, namedtype, base
 from . import rfc2898
 from . import sun_crypto
 from .util import *
@@ -158,6 +158,16 @@ class PrivateKeyEntry(AbstractKeystoreEntry):
             a = AlgorithmIdentifier()
             a.setComponentByName('algorithm', pke._algorithm_oid)
             a.setComponentByName('parameters', '\x05\x00')
+
+            # we must include an empty attribute, so that the
+            # it doesn't get encoded in the output
+            # see https://github.com/etingof/pyasn1/issues/115
+            empty_atribute = rfc2314.Attributes().subtype(
+                implicitTag=rfc2314.tag.Tag(rfc2314.tag.tagClassContext,
+                                            rfc2314.tag.tagFormatConstructed, 0))
+            empty_atribute.setComponents(base.NoValue())
+
+            private_key_info.setComponentByName('attributes', empty_atribute)
             private_key_info.setComponentByName('privateKeyAlgorithm', a)
             private_key_info.setComponentByName('privateKey', key)
 
